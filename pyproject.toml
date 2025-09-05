@@ -9,7 +9,7 @@ description = "動画エンコード・GIF変換を簡単に行えるGUIアプ�
 readme = "README.md"
 requires-python = ">=3.7"
 authors = [
-    {name = "屍鬼 骸 | Mukuro Shiki", email = "noreply@github.com"},
+    {name = "屍鬼 骸 | Mukuro Shiki", email = "mkrsk@shinyakuaragami.com"},
 ]
 keywords = ["ffmpeg", "video", "gif", "gui", "converter", "encoder"]
 classifiers = [
@@ -39,9 +39,9 @@ dev = [
 ]
 
 [project.urls]
-"Homepage" = "https://github.com/your-username/ffmpeg-gui-kun"
-"Bug Reports" = "https://github.com/your-username/ffmpeg-gui-kun/issues"
-"Source" = "https://github.com/your-username/ffmpeg-gui-kun"
+"Homepage" = "https://github.com/MukuroShiki/ffmpeg-gui-kun"
+"Bug Reports" = "https://github.com/MukuroShiki/ffmpeg-gui-kun/issues"
+"Source" = "https://github.com/MukuroShiki/ffmpeg-gui-kun"
 
 [project.scripts]
 ffmpeg-gui-kun = "ffmpeg_gui_kun.ffmpeg_gui_kun:main"

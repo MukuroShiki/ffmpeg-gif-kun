@@ -89,3 +89,7 @@ settings.json
 *.tmp
 *.temp
 *.log
+
+# Debug files
+.debug_gif_tab.py
+.debug_main_app.py
