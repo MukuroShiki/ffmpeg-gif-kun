@@ -123,8 +123,7 @@ a = Analysis(
         'threading', 'subprocess', 'json', 'pathlib', 'urllib.request', 
         'urllib.parse', 'zipfile', 'tempfile', 'shutil', 'platform',
         'utils.ffmpeg_downloader', 'core.ffmpeg_manager', 'gui.main_window',
-        'gui.video_encode_tab', 'gui.gif_convert_tab', 'utils.settings',
-        'utils.drag_drop'
+        'gui.video_encode_tab', 'gui.gif_convert_tab', 'utils.settings'
     ],
     hookspath=[],
     hooksconfig={{}},

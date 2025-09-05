@@ -11,10 +11,8 @@ import sys
 from pathlib import Path
 from typing import Optional, Callable
 
-from gui.video_encode_tab import VideoEncodeTab
 from gui.gif_convert_tab import GifConvertTab
 from core.ffmpeg_manager import FFmpegManager
-from utils.drag_drop import drag_drop
 
 
 class FFmpegGUIApp:
@@ -126,19 +124,6 @@ class FFmpegGUIApp:
         # タブノートブック
         self.notebook = ttk.Notebook(main_frame)
         
-        # 動画エンコードタブ
-        self.video_encode_tab = VideoEncodeTab(
-            self.notebook,
-            self.ffmpeg_manager,
-            self._set_processing_state,
-            self._get_processing_state
-        )
-        self.notebook.add(
-            self.video_encode_tab.frame,
-            text="動画エンコード",
-            padding=10
-        )
-        
         # GIF変換タブ
         self.gif_convert_tab = GifConvertTab(
             self.notebook,
@@ -236,9 +221,7 @@ class FFmpegGUIApp:
         if file_path:
             # 現在アクティブなタブに応じてファイルパスを設定
             current_tab = self.notebook.index(self.notebook.select())
-            if current_tab == 0:  # 動画エンコードタブ
-                self.video_encode_tab.set_input_file(file_path)
-            elif current_tab == 1:  # GIF変換タブ
+            if current_tab == 0:  # GIF変換タブ
                 self.gif_convert_tab.set_input_file(file_path)
                 
     def _show_help(self):
@@ -252,11 +235,6 @@ class FFmpegGUIApp:
 • ドラッグ&ドロップ: 動画ファイルを直接ドラッグして入力欄に設定
 • 処理開始: 設定完了後「開始」ボタンをクリック
 • 処理中止: 処理中は「中止」ボタンで強制終了可能
-
-【動画エンコードタブ】
-• 様々な出力形式とエンコーダーを選択可能
-• 解像度、FPS、品質を自由に設定
-• 高品質から高速変換まで対応
 
 【GIF変換タブ】
 • 動画からGIFアニメーションを作成

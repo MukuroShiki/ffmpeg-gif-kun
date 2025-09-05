@@ -11,12 +11,7 @@ import threading
 from pathlib import Path
 from typing import Optional, Callable
 
-import sys
-from pathlib import Path
-sys.path.append(str(Path(__file__).parent.parent))
-
 from core.ffmpeg_manager import FFmpegManager, GifSettings
-from utils import drag_drop
 from utils.settings import settings_manager, GifConvertPreset
 
 
@@ -644,17 +639,6 @@ class GifConvertTab:
             width=8
         ).pack(side=tk.RIGHT, anchor=tk.SE, pady=(2, 0))
         
-    def _setup_drag_drop(self):
-        """
-        ドラッグ&ドロップのセットアップ
-        """
-        # 入力ファイルエントリにドロップ機能を追加
-        try:
-            drag_drop.drag_drop.register_drop_target(self.input_entry, self._handle_dropped_file)
-        except Exception as e:
-            print(f"ドラッグ&ドロップ機能の初期化に失敗: {e}")
-            # ドラッグ&ドロップが使えない場合は無効化
-    
     def _update_file_info(self):
         """
         動画ファイルの情報を更新
@@ -794,15 +778,6 @@ class GifConvertTab:
             self.output_file_var.set(file_path)
             # ディレクトリを記憶
             settings_manager.update_last_directories(output_dir=str(Path(file_path).parent))
-            
-    def _handle_dropped_file(self, file_path: str):
-        """
-        ドロップされたファイルの処理
-        """
-        if os.path.isfile(file_path):
-            self.input_file_var.set(file_path)
-            self._auto_set_output_path(file_path)
-            self._update_file_info()
             
     def _auto_set_output_path(self, input_path: str):
         """

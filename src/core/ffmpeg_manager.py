@@ -52,6 +52,13 @@ class EncodeSettings:
     crf: Optional[int] = None
     preset: Optional[str] = None
     bitrate: Optional[str] = None
+    # 時間範囲設定
+    start_time: Optional[float] = None
+    end_time: Optional[float] = None
+    # ハードウェアアクセラレーション設定
+    hwaccel: Optional[str] = None
+    # オーディオビットレート
+    audio_bitrate: Optional[str] = None
 
 
 @dataclass
@@ -1151,3 +1158,178 @@ class FFmpegManager:
         import threading
         monitor_thread = threading.Thread(target=monitor, daemon=True)
         monitor_thread.start()
+        
+    def encode_video_advanced(
+        self,
+        settings: EncodeSettings,
+        progress_callback: Optional[Callable[[float], None]] = None,
+        status_callback: Optional[Callable[[str], None]] = None,
+        log_callback: Optional[Callable[[str], None]] = None
+    ) -> bool:
+        """
+        高度な動画エンコード（正しいFFmpegコマンド形式に対応）
+        正しい順序: ffmpeg [全体オプション] -i input [入力オプション] [出力オプション] output
+        
+        Args:
+            settings: エンコード設定
+            progress_callback: 進行状況コールバック（0.0-1.0）
+            status_callback: ステータスメッセージコールバック
+            log_callback: ログメッセージコールバック（FFmpegの生ログ）
+            
+        Returns:
+            成功した場合True
+        """
+        if not self.is_ffmpeg_available():
+            if status_callback:
+                status_callback("FFmpegが利用できません")
+            return False
+            
+        if self.is_processing:
+            if status_callback:
+                status_callback("他の処理が実行中です")
+            return False
+            
+        try:
+            self.is_processing = True
+            
+            # FFmpegコマンドを正しい順序で構築
+            cmd = [self.ffmpeg_path]
+            
+            # 1. グローバルオプション
+            cmd.extend(['-y'])  # 上書き許可
+            
+            # 2. ハードウェアアクセラレーション（入力前に指定）
+            if settings.hwaccel:
+                if settings.hwaccel == 'auto':
+                    cmd.extend(['-hwaccel', 'auto'])
+                else:
+                    cmd.extend(['-hwaccel', settings.hwaccel])
+                if log_callback:
+                    log_callback(f"ハードウェアアクセラレーション: {settings.hwaccel}")
+            
+            # 3. 入力ファイル関連のオプション（-i より前）
+            # 時間範囲設定 (-ss は入力前に配置すると高速)
+            if settings.start_time is not None:
+                cmd.extend(['-ss', str(settings.start_time)])
+            if settings.end_time is not None:
+                cmd.extend(['-to', str(settings.end_time)])
+                
+            # 4. 入力ファイル指定
+            cmd.extend(['-i', settings.input_file])
+            
+            # 5. 出力関連のオプション
+            
+            # ビデオコーデック設定
+            cmd.extend(['-c:v', settings.video_codec])
+            
+            # ビデオ品質設定
+            if settings.crf is not None and settings.crf > 0:
+                cmd.extend(['-crf', str(settings.crf)])
+            elif settings.bitrate:
+                cmd.extend(['-b:v', settings.bitrate])
+                
+            # プリセット設定（対応するコーデックのみ）
+            if settings.preset:
+                supported_preset_codecs = [
+                    'libx264', 'libx265', 
+                    'h264_nvenc', 'h264_qsv', 'h264_amf',
+                    'hevc_nvenc', 'hevc_qsv', 'hevc_amf'
+                ]
+                if settings.video_codec in supported_preset_codecs:
+                    cmd.extend(['-preset', settings.preset])
+                    
+            # FPS設定
+            if settings.fps:
+                cmd.extend(['-r', str(settings.fps)])
+                
+            # 解像度設定
+            if settings.width and settings.height:
+                cmd.extend(['-s', f'{settings.width}x{settings.height}'])
+                
+            # オーディオコーデック設定
+            if settings.audio_codec == 'copy':
+                cmd.extend(['-c:a', 'copy'])
+            else:
+                cmd.extend(['-c:a', settings.audio_codec])
+                
+                # オーディオビットレート設定（copyの場合は不要）
+                if settings.audio_bitrate:
+                    cmd.extend(['-b:a', settings.audio_bitrate])
+                else:
+                    # デフォルトのオーディオビットレート
+                    if settings.audio_codec == 'aac':
+                        cmd.extend(['-b:a', '128k'])
+                    elif settings.audio_codec in ['mp3', 'libmp3lame']:
+                        cmd.extend(['-b:a', '192k'])
+                    elif settings.audio_codec == 'libvorbis':
+                        cmd.extend(['-q:a', '5'])  # VorbisはVBR品質指定
+                    elif settings.audio_codec == 'libopus':
+                        cmd.extend(['-b:a', '96k'])
+                        
+            # その他の出力オプション
+            # ピクセルフォーマット指定（互換性向上）
+            if settings.video_codec in ['libx264', 'h264_nvenc', 'h264_qsv', 'h264_amf']:
+                cmd.extend(['-pix_fmt', 'yuv420p'])
+            elif settings.video_codec in ['libx265', 'hevc_nvenc', 'hevc_qsv', 'hevc_amf']:
+                cmd.extend(['-pix_fmt', 'yuv420p'])
+                
+            # 6. 出力ファイル（最後）
+            cmd.append(settings.output_file)
+            
+            if status_callback:
+                status_callback("エンコード開始...")
+                
+            # デバッグ用: 実行コマンドをログに出力
+            if log_callback:
+                log_callback(f"実行コマンド: {' '.join(cmd)}")
+                
+            # 動画の長さを取得（進行状況計算用）
+            if settings.start_time is not None and settings.end_time is not None:
+                # 時間範囲指定の場合
+                duration = settings.end_time - settings.start_time
+            else:
+                duration = self._get_video_duration(settings.input_file)
+                if settings.start_time is not None and duration:
+                    duration = duration - settings.start_time
+                    
+            # プロセス実行
+            self.current_process = subprocess.Popen(
+                cmd,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,  # stderrもstdoutにリダイレクト
+                text=True,
+                universal_newlines=True,
+                creationflags=subprocess.CREATE_NO_WINDOW if os.name == 'nt' else 0
+            )
+            
+            # 進行状況を監視
+            self._monitor_progress(
+                self.current_process,
+                duration,
+                progress_callback,
+                status_callback,
+                log_callback
+            )
+            
+            # 完了待ち
+            return_code = self.current_process.wait()
+            
+            if return_code == 0:
+                if status_callback:
+                    status_callback("エンコード完了")
+                return True
+            else:
+                if status_callback:
+                    status_callback("エンコードエラー")
+                return False
+                
+        except Exception as e:
+            if status_callback:
+                status_callback(f"エラー: {str(e)}")
+            if log_callback:
+                log_callback(f"例外エラー: {str(e)}")
+            return False
+            
+        finally:
+            self.is_processing = False
+            self.current_process = None
