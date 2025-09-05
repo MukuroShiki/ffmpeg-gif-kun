@@ -1,12 +1,10 @@
 # FFmpeg GUI Kun
 
 [![Python](https://img.shields.io/badge/Python-3.7%2B-blue.svg)](https://www.python.org/downloads/)
-[![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey.svg)](https://github.com/MukuroShiki/ffmpeg-gui-kun)
+[![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20Linux-lightgrey.svg)](https://github.com/MukuroShiki/ffmpeg-gui-kun)
 
 > 🎬 **簡単操作で高品質な動画変換・GIF作成**  
 > FFmpegの複雑なコマンドを覚える必要なし！直感的なGUIで誰でも使える動画変換ツール
-
-![Screenshot](https://via.placeholder.com/800x500?text=FFmpeg+GUI+Kun+Screenshot)
 
 ## � 特徴
 
@@ -33,8 +31,7 @@
 2. 解凍して`FFmpeg-GUI-Kun.exe`を実行
 
 **macOS:**
-1. [Releases](https://github.com/MukuroShiki/ffmpeg-gui-kun/releases)から最新の`ffmpeg-gui-kun-macos.zip`をダウンロード
-2. 解凍して`FFmpeg-GUI-Kun.app`を実行
+開発者がmacOSを有していないため、現在ビルド版はありません。
 
 **Linux:**
 1. [Releases](https://github.com/MukuroShiki/ffmpeg-gui-kun/releases)から最新の`ffmpeg-gui-kun-linux.tar.gz`をダウンロード
@@ -45,6 +42,7 @@
 **必要要件:**
 - Python 3.7以上
 - 2GB以上のメモリ（推奨）
+- FFmpegが満足に動く程度の環境
 
 **インストール:**
 ```bash
@@ -202,7 +200,6 @@ ffmpeg-gui-kun/
 │   ├── ffmpeg_gui_kun.py        # メインエントリーポイント
 │   ├── gui/                     # GUIコンポーネント
 │   │   ├── main_window.py       # メインウィンドウ
-│   │   ├── video_encode_tab.py  # 動画エンコードタブ
 │   │   └── gif_convert_tab.py   # GIF変換タブ
 │   ├── core/                    # コア機能
 │   │   └── ffmpeg_manager.py    # FFmpeg管理
@@ -221,12 +218,12 @@ ffmpeg-gui-kun/
 
 ## 🐛 バグ報告・機能要望
 
-バグ報告や機能要望は[Issues](https://github.com/your-username/ffmpeg-gui-kun/issues)までお願いします。
+バグ報告や機能要望は[Issues](https://github.com/MukuroShiki/ffmpeg-gui-kun/issues)までお願いします。
 
 ## 📧 お問い合わせ
 
 - 作者: 屍鬼 骸 | Mukuro Shiki
-- プロジェクト: [https://github.com/your-username/ffmpeg-gui-kun](https://github.com/your-username/ffmpeg-gui-kun)
+- プロジェクト: [https://github.com/MukuroShiki/ffmpeg-gui-kun](https://github.com/MukuroShiki/ffmpeg-gui-kun)
 
 ## 🙏 謝辞
 
