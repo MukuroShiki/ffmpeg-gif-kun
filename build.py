@@ -89,14 +89,18 @@ src_dir = r'{self.src_dir.as_posix()}'
 readme_path = r'{self.root_dir / "README.txt"}'
 asset_path = r'{self.root_dir / "asset"}'
 
+# 存在するファイルのみをdatasに追加
+datas = []
+if os.path.exists(readme_path):
+    datas.append((readme_path, '.'))
+if os.path.exists(asset_path):
+    datas.append((asset_path, 'asset'))
+
 a = Analysis(
     [os.path.join(src_dir, 'ffmpeg_gui_kun.py')],
     pathex=[src_dir],
     binaries=[],
-    datas=[
-        (readme_path, '.') if os.path.exists(readme_path) else None,
-        (asset_path, 'asset') if os.path.exists(asset_path) else None,
-    ],
+    datas=datas,
     hiddenimports=['tkinter', 'tkinter.filedialog', 'tkinter.messagebox', 'threading', 'subprocess', 'json', 'pathlib'],
     hookspath=[],
     hooksconfig={{}},
@@ -107,9 +111,6 @@ a = Analysis(
     cipher=None,
     noarchive=False,
 )
-
-# None を除去
-a.datas = [data for data in a.datas if data is not None]
 
 pyz = PYZ(a.pure, a.zipped_data, cipher=None)
 
