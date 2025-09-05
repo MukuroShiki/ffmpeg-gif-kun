@@ -137,18 +137,6 @@ python build.py
 3. 解像度・FPS・時間範囲を設定
 4. **「GIF変換開始」**をクリック
 
-## 📝 ライセンス
-
-[MIT License](LICENSE) - 自由に使用・改変・配布していただけます。
-
-## 🐛 バグ報告・機能要望
-
-[Issues](https://github.com/MukuroShiki/ffmpeg-gui-kun/issues)からお気軽にご報告ください。
-
----
-
-cd ffmpeg-gui-kun
-
 # 依存関係をインストール（基本的に標準ライブラリのみ）
 pip install -r requirements.txt
 
