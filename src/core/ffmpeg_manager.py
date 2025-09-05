@@ -15,6 +15,9 @@ from typing import Optional, Dict, Any, Callable, List
 from dataclasses import dataclass
 
 # FFmpegダウンローダーのインポート
+import sys
+from pathlib import Path
+sys.path.append(str(Path(__file__).parent.parent))
 from utils.ffmpeg_downloader import ffmpeg_downloader
 
 
@@ -45,6 +48,12 @@ class GifSettings:
     start_time: Optional[float] = None
     duration: Optional[float] = None
     quality: str = "medium"  # low, medium, high
+    # 2段階変換用の新しい設定
+    use_advanced_mode: bool = False
+    enable_hardware_accel: bool = True
+    hardware_accel_type: str = "auto"  # auto, cuda, qsv, videotoolbox, none
+    scaling_algorithm: str = "lanczos"  # lanczos, bicubic, bilinear, neighbor
+    dither_mode: str = "floyd_steinberg"  # none, floyd_steinberg, sierra2, sierra2_4a
 
 
 class FFmpegManager:
@@ -105,6 +114,56 @@ class FFmpegManager:
         self.ffmpeg_path = self._find_ffmpeg()
         self.current_process: Optional[subprocess.Popen] = None
         self.is_processing = False
+        self.supported_hwaccels = self._detect_hardware_acceleration()
+        
+    def _detect_hardware_acceleration(self) -> List[str]:
+        """
+        利用可能なハードウェアアクセラレーションを検出
+        
+        Returns:
+            利用可能なハードウェアアクセラレーションのリスト
+        """
+        if not self.ffmpeg_path:
+            return []
+            
+        try:
+            result = subprocess.run(
+                [self.ffmpeg_path, '-hwaccels'],
+                capture_output=True,
+                text=True,
+                timeout=10
+            )
+            
+            if result.returncode == 0:
+                lines = result.stdout.strip().split('\n')
+                hwaccels = []
+                for line in lines:
+                    line = line.strip()
+                    if line and not line.startswith('Hardware acceleration'):
+                        hwaccels.append(line)
+                return hwaccels
+            else:
+                return []
+                
+        except Exception as e:
+            print(f"Hardware acceleration detection failed: {e}")
+            return []
+    
+    def get_optimal_hardware_accel(self) -> Optional[str]:
+        """
+        利用可能な最適なハードウェアアクセラレーションを取得
+        
+        Returns:
+            最適なハードウェアアクセラレーション。利用できない場合はNone
+        """
+        # 優先順位：CUDA > QSV > VideoToolbox > VAAPI > D3D11VA
+        preferred_order = ['cuda', 'qsv', 'videotoolbox', 'vaapi', 'd3d11va']
+        
+        for hwaccel in preferred_order:
+            if hwaccel in self.supported_hwaccels:
+                return hwaccel
+                
+        return None
         
     def _find_ffmpeg(self) -> Optional[str]:
         """
@@ -194,24 +253,27 @@ class FFmpegManager:
             return None
             
         try:
+            # ffprobeを使用するように変更
+            ffprobe_path = self.ffmpeg_path.replace('ffmpeg', 'ffprobe')
+            
+            # ffprobeの存在確認
+            try:
+                subprocess.run([ffprobe_path, '-version'], 
+                             capture_output=True, timeout=5, check=True)
+                probe_cmd = ffprobe_path
+            except:
+                # ffprobeが無い場合はffmpegを使用
+                probe_cmd = self.ffmpeg_path
+                
             cmd = [
-                self.ffmpeg_path,
-                '-i', file_path,
-                '-hide_banner',
+                probe_cmd,
+                '-v', 'quiet',
                 '-print_format', 'json',
                 '-show_format',
                 '-show_streams',
-                '-v', 'quiet'
+                '-i', file_path
             ]
             
-            # ffprobeがある場合はそちらを使用
-            ffprobe_path = self.ffmpeg_path.replace('ffmpeg', 'ffprobe')
-            try:
-                subprocess.run([ffprobe_path, '-version'], capture_output=True, timeout=2)
-                cmd[0] = ffprobe_path
-            except:
-                pass
-                
             result = subprocess.run(
                 cmd,
                 capture_output=True,
@@ -220,13 +282,107 @@ class FFmpegManager:
             )
             
             if result.returncode == 0:
-                return json.loads(result.stdout)
+                data = json.loads(result.stdout)
+                
+                # より使いやすい形式に変換
+                video_stream = None
+                for stream in data.get('streams', []):
+                    if stream.get('codec_type') == 'video':
+                        video_stream = stream
+                        break
+                
+                if video_stream:
+                    info = {
+                        'width': video_stream.get('width'),
+                        'height': video_stream.get('height'),
+                        'duration': float(data.get('format', {}).get('duration', 0)),
+                        'fps': self._get_fps_from_stream(video_stream),
+                        'bitrate': data.get('format', {}).get('bit_rate'),
+                        'codec': video_stream.get('codec_name'),
+                        'format': data.get('format', {}).get('format_name'),
+                        'size': data.get('format', {}).get('size')
+                    }
+                    
+                    # 値の整形
+                    if info['bitrate']:
+                        info['bitrate'] = f"{int(info['bitrate']) // 1000} kbps"
+                    if info['size']:
+                        size_mb = int(info['size']) / (1024 * 1024)
+                        info['size'] = f"{size_mb:.1f} MB"
+                    if info['duration']:
+                        info['duration'] = f"{info['duration']:.1f}"
+                        
+                    return info
+                else:
+                    return None
             else:
-                print(f"FFmpeg error: {result.stderr}")
+                print(f"FFprobe error: {result.stderr}")
+                return None
+                
+        except subprocess.TimeoutExpired:
+            print("FFprobe timeout - file may be inaccessible")
+            return None
+        except PermissionError:
+            print("Permission denied - try running as administrator")
+            return None
+        except Exception as e:
+            print(f"Error getting video info: {e}")
+            return None
+    
+    def _get_fps_from_stream(self, stream: Dict[str, Any]) -> Optional[str]:
+        """
+        動画ストリームからFPS情報を取得
+        """
+        try:
+            # r_frame_rateを最優先
+            if 'r_frame_rate' in stream:
+                fps_str = stream['r_frame_rate']
+                if '/' in fps_str:
+                    num, den = fps_str.split('/')
+                    if int(den) != 0:
+                        fps = int(num) / int(den)
+                        return f"{fps:.2f}"
+            
+            # avg_frame_rateを次に試す
+            if 'avg_frame_rate' in stream:
+                fps_str = stream['avg_frame_rate']
+                if '/' in fps_str:
+                    num, den = fps_str.split('/')
+                    if int(den) != 0:
+                        fps = int(num) / int(den)
+                        return f"{fps:.2f}"
+                        
+            return None
+        except:
+            return None
+    
+    def get_ffmpeg_version(self) -> Optional[str]:
+        """
+        FFmpegのバージョン情報を取得
+        
+        Returns:
+            FFmpegのバージョン情報。エラーの場合はNone
+        """
+        if not self.is_ffmpeg_available():
+            return None
+            
+        try:
+            result = subprocess.run(
+                [self.ffmpeg_path, '-version'],
+                capture_output=True,
+                text=True,
+                timeout=10
+            )
+            
+            if result.returncode == 0:
+                # 最初の行を取得（バージョン情報）
+                first_line = result.stdout.split('\\n')[0]
+                return first_line
+            else:
                 return None
                 
         except Exception as e:
-            print(f"Error getting video info: {e}")
+            print(f"Error getting FFmpeg version: {e}")
             return None
             
     def encode_video(
@@ -488,6 +644,351 @@ class FFmpegManager:
             self.is_processing = False
             self.current_process = None
             
+    def create_gif_advanced(
+        self,
+        settings: GifSettings,
+        progress_callback: Optional[Callable[[float], None]] = None,
+        status_callback: Optional[Callable[[str], None]] = None,
+        log_callback: Optional[Callable[[str], None]] = None
+    ) -> bool:
+        """
+        2段階方式による高品質GIF作成
+        
+        Args:
+            settings: GIF変換設定
+            progress_callback: 進行状況コールバック（0.0-1.0）
+            status_callback: ステータスメッセージコールバック
+            log_callback: ログメッセージコールバック（FFmpegの生ログ）
+            
+        Returns:
+            成功した場合True
+        """
+        if not self.is_ffmpeg_available():
+            if status_callback:
+                status_callback("FFmpegが利用できません")
+            return False
+            
+        if self.is_processing:
+            if status_callback:
+                status_callback("他の処理が実行中です")
+            return False
+            
+        try:
+            self.is_processing = True
+            
+            # 一時パレットファイルの作成
+            import tempfile
+            palette_file = None
+            
+            with tempfile.NamedTemporaryFile(suffix='.png', delete=False) as tmp:
+                palette_file = tmp.name
+            
+            try:
+                # ステップ1: パレット生成
+                if status_callback:
+                    status_callback("ステップ1/2: 最適パレット生成中...")
+                    
+                success_palette = self._create_palette(
+                    settings, 
+                    palette_file, 
+                    lambda p: progress_callback(p * 0.5) if progress_callback else None,
+                    status_callback,
+                    log_callback
+                )
+                
+                if not success_palette:
+                    if status_callback:
+                        status_callback("パレット生成に失敗しました")
+                    return False
+                
+                # ステップ2: GIF生成
+                if status_callback:
+                    status_callback("ステップ2/2: GIF生成中...")
+                    
+                success_gif = self._create_gif_with_palette(
+                    settings,
+                    palette_file,
+                    lambda p: progress_callback(0.5 + p * 0.5) if progress_callback else None,
+                    status_callback,
+                    log_callback
+                )
+                
+                if success_gif:
+                    if status_callback:
+                        status_callback("高品質GIF変換完了")
+                    return True
+                else:
+                    if status_callback:
+                        status_callback("GIF生成に失敗しました")
+                    return False
+                    
+            finally:
+                # 一時ファイルをクリーンアップ
+                if palette_file and os.path.exists(palette_file):
+                    try:
+                        os.unlink(palette_file)
+                    except Exception as e:
+                        print(f"Failed to cleanup palette file: {e}")
+                        
+        except Exception as e:
+            if status_callback:
+                status_callback(f"エラー: {str(e)}")
+            return False
+            
+        finally:
+            self.is_processing = False
+            self.current_process = None
+    
+    def _create_palette(
+        self,
+        settings: GifSettings,
+        palette_file: str,
+        progress_callback: Optional[Callable[[float], None]] = None,
+        status_callback: Optional[Callable[[str], None]] = None,
+        log_callback: Optional[Callable[[str], None]] = None
+    ) -> bool:
+        """
+        パレット生成（第1段階）
+        """
+        try:
+            # FFmpegコマンドを構築
+            cmd = [self.ffmpeg_path]
+            
+            # ハードウェアアクセラレーション設定
+            hwaccel = self._get_hardware_accel_for_settings(settings)
+            if hwaccel:
+                cmd.extend(['-hwaccel', hwaccel])
+                if log_callback:
+                    log_callback(f"ハードウェアアクセラレーション: {hwaccel}")
+            
+            # 時間範囲設定
+            if settings.start_time is not None:
+                cmd.extend(['-ss', self._format_time(settings.start_time)])
+            if settings.duration is not None:
+                cmd.extend(['-t', str(settings.duration)])
+            elif settings.start_time is not None:
+                # 終了時間の計算（duration優先、なければstart_timeから動画終了まで）
+                video_duration = self._get_video_duration(settings.input_file)
+                if video_duration:
+                    duration = video_duration - settings.start_time
+                    cmd.extend(['-t', str(duration)])
+            
+            # 入力ファイル
+            cmd.extend(['-i', settings.input_file])
+            
+            # フィルター設定
+            filters = []
+            
+            # FPS設定
+            if settings.fps:
+                filters.append(f'fps={settings.fps}')
+            
+            # 解像度設定
+            if settings.width and settings.height:
+                scale_filter = f'scale={settings.width}:{settings.height}:flags={settings.scaling_algorithm}'
+                filters.append(scale_filter)
+            elif settings.width:
+                scale_filter = f'scale={settings.width}:-1:flags={settings.scaling_algorithm}'
+                filters.append(scale_filter)
+            elif settings.height:
+                scale_filter = f'scale=-1:{settings.height}:flags={settings.scaling_algorithm}'
+                filters.append(scale_filter)
+            
+            # RGB24フォーマット変換（パレット生成で重要）
+            filters.append('format=rgb24')
+            
+            # パレット生成フィルター
+            palette_colors = self._get_palette_colors_for_quality(settings.quality)
+            filters.append(f'palettegen=max_colors={palette_colors}')
+            
+            # フィルター設定を適用
+            if filters:
+                cmd.extend(['-vf', ','.join(filters)])
+            
+            # 出力設定
+            cmd.extend(['-y'])  # 上書き許可
+            cmd.append(palette_file)
+            
+            if log_callback:
+                log_callback(f"パレット生成コマンド: {' '.join(cmd)}")
+            
+            # 動画の長さを取得
+            duration = settings.duration if settings.duration else self._get_video_duration(settings.input_file)
+            
+            # プロセス実行
+            self.current_process = subprocess.Popen(
+                cmd,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+                universal_newlines=True
+            )
+            
+            # 進行状況を監視
+            self._monitor_progress(
+                self.current_process,
+                duration,
+                progress_callback,
+                status_callback,
+                log_callback
+            )
+            
+            # 完了待ち
+            return_code = self.current_process.wait()
+            return return_code == 0
+            
+        except Exception as e:
+            if log_callback:
+                log_callback(f"パレット生成エラー: {str(e)}")
+            return False
+    
+    def _create_gif_with_palette(
+        self,
+        settings: GifSettings,
+        palette_file: str,
+        progress_callback: Optional[Callable[[float], None]] = None,
+        status_callback: Optional[Callable[[str], None]] = None,
+        log_callback: Optional[Callable[[str], None]] = None
+    ) -> bool:
+        """
+        パレットを使用してGIF生成（第2段階）
+        """
+        try:
+            # FFmpegコマンドを構築
+            cmd = [self.ffmpeg_path]
+            
+            # ハードウェアアクセラレーション設定
+            hwaccel = self._get_hardware_accel_for_settings(settings)
+            if hwaccel:
+                cmd.extend(['-hwaccel', hwaccel])
+            
+            # 時間範囲設定（パレット生成と同じ）
+            if settings.start_time is not None:
+                cmd.extend(['-ss', self._format_time(settings.start_time)])
+            if settings.duration is not None:
+                cmd.extend(['-t', str(settings.duration)])
+            elif settings.start_time is not None:
+                video_duration = self._get_video_duration(settings.input_file)
+                if video_duration:
+                    duration = video_duration - settings.start_time
+                    cmd.extend(['-t', str(duration)])
+            
+            # 入力ファイル（動画とパレット）
+            cmd.extend(['-i', settings.input_file])
+            cmd.extend(['-i', palette_file])
+            
+            # フィルター設定
+            filters = []
+            
+            # FPS設定
+            if settings.fps:
+                filters.append(f'[0:v]fps={settings.fps}')
+            else:
+                filters.append('[0:v]')
+                
+            # 解像度設定
+            if settings.width and settings.height:
+                scale_filter = f'scale={settings.width}:{settings.height}:flags={settings.scaling_algorithm}'
+                if filters[-1] != '[0:v]':
+                    filters[-1] += f',{scale_filter}'
+                else:
+                    filters[-1] = f'[0:v]{scale_filter}'
+            elif settings.width:
+                scale_filter = f'scale={settings.width}:-1:flags={settings.scaling_algorithm}'
+                if filters[-1] != '[0:v]':
+                    filters[-1] += f',{scale_filter}'
+                else:
+                    filters[-1] = f'[0:v]{scale_filter}'
+            elif settings.height:
+                scale_filter = f'scale=-1:{settings.height}:flags={settings.scaling_algorithm}'
+                if filters[-1] != '[0:v]':
+                    filters[-1] += f',{scale_filter}'
+                else:
+                    filters[-1] = f'[0:v]{scale_filter}'
+            
+            # ストリーム出力ラベル
+            filters[-1] += '[v]'
+            
+            # パレット使用フィルター
+            filters.append(f'[v][1:v]paletteuse=dither={settings.dither_mode}')
+            
+            # フィルター設定を適用
+            cmd.extend(['-filter_complex', ';'.join(filters)])
+            
+            # 出力設定
+            cmd.extend(['-y'])  # 上書き許可
+            cmd.append(settings.output_file)
+            
+            if log_callback:
+                log_callback(f"GIF生成コマンド: {' '.join(cmd)}")
+                log_callback(f"フィルター設定: {';'.join(filters)}")
+            
+            # 動画の長さを取得
+            duration = settings.duration if settings.duration else self._get_video_duration(settings.input_file)
+            
+            # プロセス実行
+            self.current_process = subprocess.Popen(
+                cmd,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+                universal_newlines=True
+            )
+            
+            # 進行状況を監視
+            self._monitor_progress(
+                self.current_process,
+                duration,
+                progress_callback,
+                status_callback,
+                log_callback
+            )
+            
+            # 完了待ち
+            return_code = self.current_process.wait()
+            return return_code == 0
+            
+        except Exception as e:
+            if log_callback:
+                log_callback(f"GIF生成エラー: {str(e)}")
+            return False
+    
+    def _get_hardware_accel_for_settings(self, settings: GifSettings) -> Optional[str]:
+        """
+        設定に基づいて使用するハードウェアアクセラレーションを決定
+        """
+        if not settings.enable_hardware_accel:
+            return None
+            
+        if settings.hardware_accel_type == "auto":
+            return self.get_optimal_hardware_accel()
+        elif settings.hardware_accel_type == "none":
+            return None
+        elif settings.hardware_accel_type in self.supported_hwaccels:
+            return settings.hardware_accel_type
+        else:
+            return None
+    
+    def _get_palette_colors_for_quality(self, quality: str) -> int:
+        """
+        品質設定に基づくパレット色数を取得
+        """
+        quality_settings = {
+            'low': 64,
+            'medium': 128,
+            'high': 256
+        }
+        return quality_settings.get(quality, 128)
+    
+    def _format_time(self, seconds: float) -> str:
+        """
+        秒数をHH:MM:SS.mmm形式に変換
+        """
+        hours = int(seconds // 3600)
+        minutes = int((seconds % 3600) // 60)
+        secs = seconds % 60
+        return f"{hours:02d}:{minutes:02d}:{secs:06.3f}"
+            
     def cancel_current_process(self):
         """
         現在実行中のプロセスをキャンセル
@@ -516,10 +1017,17 @@ class FFmpegManager:
             長さ（秒）。取得できない場合はNone
         """
         video_info = self.get_video_info(file_path)
-        if video_info and 'format' in video_info:
+        if video_info:
             try:
-                return float(video_info['format']['duration'])
-            except (KeyError, ValueError):
+                # 新しい形式のvideo_infoから取得
+                if 'duration' in video_info:
+                    duration_str = video_info['duration']
+                    # "10.5"形式の文字列を浮動小数点に変換
+                    return float(duration_str)
+                # 古い形式（互換性のため）
+                elif 'format' in video_info and 'duration' in video_info['format']:
+                    return float(video_info['format']['duration'])
+            except (KeyError, ValueError, TypeError):
                 pass
         return None
         
