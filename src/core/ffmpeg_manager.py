@@ -15,10 +15,27 @@ from typing import Optional, Dict, Any, Callable, List
 from dataclasses import dataclass
 
 # FFmpegダウンローダーのインポート
-import sys
-from pathlib import Path
-sys.path.append(str(Path(__file__).parent.parent))
-from utils.ffmpeg_downloader import ffmpeg_downloader
+try:
+    # 通常の実行環境
+    from utils.ffmpeg_downloader import ffmpeg_downloader
+except ImportError:
+    # PyInstallerでのバイナリ実行時
+    try:
+        import sys
+        from pathlib import Path
+        
+        # モジュールパスを追加
+        if hasattr(sys, '_MEIPASS'):
+            # PyInstallerの一時ディレクトリ
+            base_path = Path(sys._MEIPASS)
+        else:
+            base_path = Path(__file__).parent.parent
+            
+        sys.path.insert(0, str(base_path))
+        from utils.ffmpeg_downloader import ffmpeg_downloader
+    except ImportError as e:
+        print(f"Warning: Could not import ffmpeg_downloader: {e}")
+        ffmpeg_downloader = None
 
 
 @dataclass
@@ -111,6 +128,8 @@ class FFmpegManager:
         """
         FFmpegManagerの初期化
         """
+        # FFmpegダウンローダーをインスタンス属性として設定
+        self.ffmpeg_downloader = ffmpeg_downloader
         self.ffmpeg_path = self._find_ffmpeg()
         self.current_process: Optional[subprocess.Popen] = None
         self.is_processing = False
@@ -173,9 +192,10 @@ class FFmpegManager:
             FFmpegのパス。見つからない場合はNone
         """
         # まずFFmpegダウンローダーに確認
-        ffmpeg_path = ffmpeg_downloader.get_ffmpeg_path()
-        if ffmpeg_path:
-            return ffmpeg_path
+        if ffmpeg_downloader:
+            ffmpeg_path = ffmpeg_downloader.get_ffmpeg_path()
+            if ffmpeg_path:
+                return ffmpeg_path
             
         # 従来の検索も継続
         possible_paths = [
@@ -230,6 +250,11 @@ class FFmpegManager:
             return True
             
         # FFmpegをダウンロード
+        if not ffmpeg_downloader:
+            if status_callback:
+                status_callback("FFmpegダウンローダーが利用できません")
+            return False
+            
         success = ffmpeg_downloader.download_ffmpeg(progress_callback, status_callback)
         
         if success:
@@ -1126,31 +1151,3 @@ class FFmpegManager:
         import threading
         monitor_thread = threading.Thread(target=monitor, daemon=True)
         monitor_thread.start()
-                    
-    def download_ffmpeg_if_needed(
-        self,
-        progress_callback: Optional[Callable[[int, int], None]] = None,
-        status_callback: Optional[Callable[[str], None]] = None
-    ) -> bool:
-        """
-        必要に応じてFFmpegをダウンロード
-        
-        Args:
-            progress_callback: 進行状況コールバック (現在, 総計)
-            status_callback: ステータスメッセージコールバック
-            
-        Returns:
-            FFmpegが利用可能になった場合True
-        """
-        if self.is_ffmpeg_available():
-            return True
-            
-        # FFmpegをダウンロード
-        success = ffmpeg_downloader.download_ffmpeg(progress_callback, status_callback)
-        
-        if success:
-            # パスを再取得
-            self.ffmpeg_path = self._find_ffmpeg()
-            return self.is_ffmpeg_available()
-            
-        return False

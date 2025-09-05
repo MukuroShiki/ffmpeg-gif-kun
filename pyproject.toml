@@ -31,8 +31,11 @@ classifiers = [
 dependencies = []
 
 [project.optional-dependencies]
+build = [
+    "pyinstaller>=6.0",
+]
 dev = [
-    "pyinstaller>=5.0",
+    "pyinstaller>=6.0",
     "pytest>=7.0",
     "black>=22.0",
     "flake8>=4.0",

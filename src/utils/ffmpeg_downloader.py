@@ -44,8 +44,13 @@ class FFmpegDownloader:
             base_dir: FFmpegを保存するベースディレクトリ
         """
         if base_dir is None:
-            # アプリケーションと同じディレクトリ
-            base_dir = Path(__file__).parent.parent.parent
+            # PyInstallerでの実行時を考慮したパス設定
+            if hasattr(sys, '_MEIPASS'):
+                # PyInstallerのバイナリ実行時：実行ファイルと同じディレクトリ
+                base_dir = Path(sys.executable).parent
+            else:
+                # 開発環境：アプリケーションのルートディレクトリ
+                base_dir = Path(__file__).parent.parent.parent
             
         self.base_dir = Path(base_dir)
         self.ffmpeg_dir = self.base_dir / "ffmpeg_bin"

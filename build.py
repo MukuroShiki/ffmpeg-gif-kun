@@ -34,13 +34,30 @@ class FFmpegGUIBuilder:
         # 古いビルド成果物を削除
         for directory in [self.dist_dir, self.build_dir]:
             if directory.exists():
-                shutil.rmtree(directory)
-                print(f"   Removed: {directory}")
+                try:
+                    shutil.rmtree(directory)
+                    print(f"   Removed: {directory}")
+                except OSError as e:
+                    print(f"   Warning: Could not remove {directory}: {e}")
+                    print(f"   Trying to clear contents instead...")
+                    try:
+                        # フォルダの中身だけ削除を試行
+                        for item in directory.iterdir():
+                            if item.is_file():
+                                item.unlink()
+                            elif item.is_dir():
+                                shutil.rmtree(item)
+                        print(f"   Cleared contents of: {directory}")
+                    except Exception as clear_error:
+                        print(f"   Error: Could not clear {directory}: {clear_error}")
                 
         # 古いspecファイルを削除
         if self.spec_file.exists():
-            self.spec_file.unlink()
-            print(f"   Removed: {self.spec_file}")
+            try:
+                self.spec_file.unlink()
+                print(f"   Removed: {self.spec_file}")
+            except OSError as e:
+                print(f"   Warning: Could not remove spec file: {e}")
             
         print("✅ Build directories cleaned")
         
@@ -86,7 +103,7 @@ import os
 
 # パスを正規化
 src_dir = r'{self.src_dir.as_posix()}'
-readme_path = r'{self.root_dir / "README.txt"}'
+readme_path = r'{self.root_dir / "README.md"}'
 asset_path = r'{self.root_dir / "asset"}'
 
 # 存在するファイルのみをdatasに追加
@@ -101,7 +118,14 @@ a = Analysis(
     pathex=[src_dir],
     binaries=[],
     datas=datas,
-    hiddenimports=['tkinter', 'tkinter.filedialog', 'tkinter.messagebox', 'threading', 'subprocess', 'json', 'pathlib'],
+    hiddenimports=[
+        'tkinter', 'tkinter.filedialog', 'tkinter.messagebox', 'tkinter.ttk',
+        'threading', 'subprocess', 'json', 'pathlib', 'urllib.request', 
+        'urllib.parse', 'zipfile', 'tempfile', 'shutil', 'platform',
+        'utils.ffmpeg_downloader', 'core.ffmpeg_manager', 'gui.main_window',
+        'gui.video_encode_tab', 'gui.gif_convert_tab', 'utils.settings',
+        'utils.drag_drop'
+    ],
     hookspath=[],
     hooksconfig={{}},
     runtime_hooks=[],
@@ -205,45 +229,35 @@ exe = EXE(
         if package_dir.exists():
             shutil.rmtree(package_dir)
             
-        package_dir.mkdir(parents=True)
-        
-        # ファイルをコピー
-        shutil.copy2(exe_path, package_dir / exe_name)
-        shutil.copy2(self.root_dir / "README.txt", package_dir)
-        
-        # アセットフォルダがある場合
-        asset_dir = self.root_dir / "asset"
-        if asset_dir.exists():
-            shutil.copytree(asset_dir, package_dir / "asset")
-            
-        # 起動スクリプト（バックアップ用）
-        if self.system == 'windows':
-            script_content = f'@echo off\\nstart "" "{exe_name}"'
-            script_path = package_dir / "start.bat"
-        else:
-            script_content = f'#!/bin/bash\\n"./{exe_name}"'
-            script_path = package_dir / "start.sh"
-            
-        with open(script_path, 'w', encoding='utf-8') as f:
-            f.write(script_content)
-            
-        if self.system != 'windows':
-            os.chmod(script_path, 0o755)
-            
-        # ZIP圧縮
-        archive_path = self.dist_dir / f"{package_name}.zip"
-        shutil.make_archive(
-            str(archive_path.with_suffix('')),
-            'zip',
-            str(self.dist_dir),
-            package_name
-        )
-        
+        # バイナリのみを配布する場合はパッケージディレクトリを作成しない
         print(f"✅ Distribution package created:")
-        print(f"   Directory: {package_dir}")
-        print(f"   Archive: {archive_path}")
+        print(f"   Binary: {exe_path}")
         
         return True
+        
+    def cleanup_intermediate_files(self):
+        """
+        中間ファイルをクリーンアップ
+        """
+        print("🧹 Cleaning intermediate files...")
+        
+        # buildフォルダを削除
+        if self.build_dir.exists():
+            try:
+                shutil.rmtree(self.build_dir)
+                print(f"   Removed: {self.build_dir}")
+            except Exception as e:
+                print(f"   Warning: Failed to remove build directory: {e}")
+                
+        # specファイルを削除
+        if self.spec_file.exists():
+            try:
+                self.spec_file.unlink()
+                print(f"   Removed: {self.spec_file}")
+            except Exception as e:
+                print(f"   Warning: Failed to remove spec file: {e}")
+                
+        print("✅ Intermediate files cleaned")
         
     def build(self, clean=True):
         """
@@ -273,15 +287,22 @@ exe = EXE(
             if not self.create_distribution():
                 return False
                 
+            # ステップ6: 中間ファイルクリーンアップ
+            self.cleanup_intermediate_files()
+                
             print("🎉 Build process completed successfully!")
             print("   Ready for distribution!")
             return True
             
         except KeyboardInterrupt:
             print("\\n❌ Build interrupted by user")
+            # 中断時も中間ファイルをクリーンアップ
+            self.cleanup_intermediate_files()
             return False
         except Exception as e:
             print(f"❌ Unexpected error: {e}")
+            # エラー時も中間ファイルをクリーンアップ
+            self.cleanup_intermediate_files()
             return False
 
 
