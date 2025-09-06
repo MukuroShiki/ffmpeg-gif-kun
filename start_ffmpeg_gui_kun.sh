@@ -1,15 +1,15 @@
 #!/bin/bash
-# FFmpeg GUI Kun 起動スクリプト (macOS/Linux用)
+# FFmpeg GIF Kun 起動スクリプト (macOS/Linux用)
 
 cd "$(dirname "$0")"
 
 # Python仮想環境がある場合は使用
 if [ -f ".venv/bin/python" ]; then
-    echo "仮想環境でFFmpeg GUI Kunを起動中..."
+    echo "仮想環境でFFmpeg GIF Kunを起動中..."
     .venv/bin/python ./src/ffmpeg_gui_kun.py
 else
     # システムのPythonを使用
-    echo "システムPythonでFFmpeg GUI Kunを起動中..."
+    echo "システムPythonでFFmpeg GIF Kunを起動中..."
     if command -v python3 &> /dev/null; then
         python3 ./src/ffmpeg_gui_kun.py
     elif command -v python &> /dev/null; then

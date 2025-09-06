@@ -144,7 +144,7 @@ exe = EXE(
     a.zipfiles,
     a.datas,
     [],
-    name='FFmpeg-GUI-Kun',
+    name='FFmpeg-GIF-Kun',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
@@ -212,9 +212,9 @@ exe = EXE(
         
         # 実行ファイルの確認
         if self.system == 'windows':
-            exe_name = "FFmpeg-GUI-Kun.exe"
+            exe_name = "FFmpeg-GIF-Kun.exe"
         else:
-            exe_name = "FFmpeg-GUI-Kun"
+            exe_name = "FFmpeg-GIF-Kun"
             
         exe_path = self.dist_dir / exe_name
         if not exe_path.exists():
@@ -222,16 +222,52 @@ exe = EXE(
             return False
             
         # 配布用ディレクトリ
-        package_name = f"FFmpeg-GUI-Kun-{self.system}"
+        package_name = f"FFmpeg-GIF-Kun-{self.system}"
         package_dir = self.dist_dir / package_name
-        
+
         if package_dir.exists():
             shutil.rmtree(package_dir)
-            
-        # バイナリのみを配布する場合はパッケージディレクトリを作成しない
+
+        package_dir.mkdir(parents=True)
+
+        # ファイルをコピー
+        shutil.copy2(exe_path, package_dir / exe_name)
+        readme_src = self.root_dir / "README.md"
+        if readme_src.exists():
+            shutil.copy2(readme_src, package_dir)
+
+        # アセットフォルダがある場合
+        asset_dir = self.root_dir / "asset"
+        if asset_dir.exists():
+            shutil.copytree(asset_dir, package_dir / "asset")
+
+        # 起動スクリプト（バックアップ用）
+        if self.system == 'windows':
+            script_content = f'@echo off\\nstart "" "{exe_name}"'
+            script_path = package_dir / "start.bat"
+        else:
+            script_content = f'#!/bin/bash\\n"./{exe_name}"'
+            script_path = package_dir / "start.sh"
+
+        with open(script_path, 'w', encoding='utf-8') as f:
+            f.write(script_content)
+
+        if self.system != 'windows':
+            os.chmod(script_path, 0o755)
+
+        # ZIP圧縮
+        archive_path = self.dist_dir / f"{package_name}.zip"
+        shutil.make_archive(
+            str(archive_path.with_suffix('')),
+            'zip',
+            str(self.dist_dir),
+            package_name
+        )
+
         print(f"✅ Distribution package created:")
-        print(f"   Binary: {exe_path}")
-        
+        print(f"   Directory: {package_dir}")
+        print(f"   Archive: {archive_path}")
+
         return True
         
     def cleanup_intermediate_files(self):
@@ -262,7 +298,7 @@ exe = EXE(
         """
         完全ビルドプロセス
         """
-        print("🚀 Starting FFmpeg GUI Kun build process...")
+        print("🚀 Starting FFmpeg GIF Kun build process...")
         print(f"   System: {platform.system()} {platform.machine()}")
         print(f"   Python: {sys.version}")
         
@@ -311,7 +347,7 @@ def main():
     """
     import argparse
     
-    parser = argparse.ArgumentParser(description='Build FFmpeg GUI Kun executable')
+    parser = argparse.ArgumentParser(description='Build FFmpeg GIF Kun executable')
     parser.add_argument('--no-clean', action='store_true', 
                        help='Skip cleaning build directories')
     parser.add_argument('--clean-only', action='store_true',

@@ -1,0 +1,10 @@
+# packages required to build the executable with PyInstaller
+pyinstaller>=6.0
+pyinstaller-hooks-contrib>=2025.8
+setuptools>=61.0
+wheel
+
+# Optional developer tools
+pytest>=7.0
+black>=22.0
+flake8>=4.0

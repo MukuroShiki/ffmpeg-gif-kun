@@ -1,4 +1,4 @@
-# FFmpeg GUI Kun
+# FFmpeg GIF Kun - 動画をGIF画像に変換するGUIアプリケーション
 
 [![Python](https://img.shields.io/badge/Python-3.7%2B-blue.svg)](https://www.python.org/downloads/)
 [![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20Linux-lightgrey.svg)](https://github.com/MukuroShiki/ffmpeg-gui-kun)
@@ -27,15 +27,15 @@
 ### 📦 実行ファイル版（推奨）
 
 **Windows:**
-1. [Releases](https://github.com/MukuroShiki/ffmpeg-gui-kun/releases)から最新の`ffmpeg-gui-kun-windows.zip`をダウンロード
-2. 解凍して`FFmpeg-GUI-Kun.exe`を実行
+1. [Releases](https://github.com/MukuroShiki/ffmpeg-gui-kun/releases)から最新の`ffmpeg-gif-kun-windows.zip`をダウンロード
+2. 解凍して`FFmpeg-GIF-Kun.exe`を実行
 
 **macOS:**
 開発者がmacOSを有していないため、現在ビルド版はありません。
 
 **Linux:**
-1. [Releases](https://github.com/MukuroShiki/ffmpeg-gui-kun/releases)から最新の`ffmpeg-gui-kun-linux.tar.gz`をダウンロード
-2. 解凍して`./FFmpeg-GUI-Kun`を実行
+1. [Releases](https://github.com/MukuroShiki/ffmpeg-gui-kun/releases)から最新の`ffmpeg-gif-kun-linux.tar.gz`をダウンロード
+2. 解凍して`./FFmpeg-GIF-Kun`を実行
 
 ### 🐍 ソースコード版
 
@@ -148,10 +148,10 @@ pip install -r build_requirements.txt
 python build.py
 
 # 生成されたファイルを実行（Windows）
-./dist/FFmpeg-GUI-Kun.exe
+./dist/FFmpeg-GIF-Kun.exe
 
 # 生成されたファイルを実行（macOS/Linux）
-./dist/FFmpeg-GUI-Kun
+./dist/FFmpeg-GIF-Kun
 ```
 
 ### 簡単起動スクリプト

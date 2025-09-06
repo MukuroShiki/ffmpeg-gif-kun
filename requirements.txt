@@ -1,0 +1,12 @@
+# requirements for running FFmpeg-GUI-Kun
+# NOTE: This project uses only Python standard-library modules in source
+# (tkinter, pathlib, threading, subprocess, json, etc.). Therefore there are
+# no pip-installable Python packages strictly required at runtime.
+#
+# System-level runtime dependencies (must be installed via OS package manager):
+# - Python 3.7+ (project supports 3.7 - 3.13)
+# - Tk (for tkinter) e.g. on Ubuntu: sudo apt install python3-tk
+# - FFmpeg binary available on PATH (ffmpeg/ffprobe)
+#
+# If you want to pin a Python interpreter requirement, uncomment below:
+# python>=3.7

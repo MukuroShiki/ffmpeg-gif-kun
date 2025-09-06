@@ -1,16 +1,16 @@
 @echo off
-REM FFmpeg GUI Kun 起動バッチファイル
+REM FFmpeg GIF Kun 起動バッチファイル
 REM このファイルをダブルクリックしてアプリケーションを起動
 
 cd /d "%~dp0"
 
 REM Python仮想環境がある場合は使用
 if exist ".venv\Scripts\python.exe" (
-    echo 仮想環境でFFmpeg GUI Kunを起動中...
+    echo 仮想環境でFFmpeg GIF Kunを起動中...
     ".venv\Scripts\python.exe" ./src/ffmpeg_gui_kun.py
 ) else (
     REM システムのPythonを使用
-    echo システムPythonでFFmpeg GUI Kunを起動中...
+    echo システムPythonでFFmpeg GIF Kunを起動中...
     python ./src/ffmpeg_gui_kun.py
 )
 
