@@ -2,6 +2,7 @@
 
 [![Python](https://img.shields.io/badge/Python-3.7%2B-blue.svg)](https://www.python.org/downloads/)
 [![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20Linux-lightgrey.svg)](https://github.com/MukuroShiki/ffmpeg-gui-kun)
+![License](https://img.shields.io/github/license/MukuroShiki/ffmpeg-gif-kun)
 
 > 🎬 **簡単操作で高品質な動画変換・GIF作成**  
 > FFmpegの複雑なコマンドを覚える必要なし！直感的なGUIで誰でも使える動画変換ツール
@@ -109,7 +110,7 @@ python build.py
 
 ```
 ffmpeg-gif-kun/
-├── src/                          # ソースコード
+├── src/                         # ソースコード
 │   ├── ffmpeg_gif_kun.py        # メインエントリーポイント
 │   ├── gui/                     # GUIコンポーネント
 │   │   ├── main_window.py       # メインウィンドウ
@@ -127,7 +128,7 @@ ffmpeg-gif-kun/
 
 ## 📝 ライセンス
 
-このプロジェクトのライセンスは現在検討中です。配布前に適切なオープンソースライセンスを選択する予定です。
+このプロジェクトは **BSD 2-Clause ライセンス** に基づいて提供されています。
 
 ## 🐛 バグ報告・機能要望
 
@@ -141,5 +142,5 @@ ffmpeg-gif-kun/
 ## 🙏 謝辞
 
 - [FFmpeg](https://ffmpeg.org/) - 強力な動画処理ライブラリ
-- [Python](https://www.python.org/) - 素晴らしいプログラミング言語
+- [Python](https://www.python.org/) - お馴染みの万能インタプリタ言語
 - [Tkinter](https://docs.python.org/3/library/tkinter.html) - クロスプラットフォームGUIライブラリ
