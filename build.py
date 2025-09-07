@@ -94,33 +94,36 @@ class FFmpegGUIBuilder:
         print("📝 Creating PyInstaller spec file...")
         
         # アイコンファイルの確認（プラットフォーム別）
+        icon_option = ""
         if self.system == 'darwin':  # macOS
             icon_path = self.root_dir / "asset" / "icon.icns"
         else:  # Windows/Linux
             icon_path = self.root_dir / "asset" / "icon.ico"
             
-        if icon_path.exists():
+        if icon_path and icon_path.exists():
             icon_option = f"icon=r'{icon_path.as_posix()}'"
             print(f"   Icon found: {icon_path}")
         else:
-            icon_option = ""
-            print(f"   Warning: Icon file not found: {icon_path}")
+            if icon_path:
+                print(f"   Warning: Icon file not found: {icon_path}")
+            else:
+                print(f"   Note: No icon specified")
         
-        # specファイルの内容（Windows パス対応）
+        # specファイルの内容（最小限のデータファイルのみ）
         spec_content = f'''# -*- mode: python ; coding: utf-8 -*-
 import os
 
 # パスを正規化
 src_dir = r'{self.src_dir.as_posix()}'
 readme_path = r'{self.root_dir / "README.md"}'
-asset_path = r'{self.root_dir / "asset"}'
 
-# 存在するファイルのみをdatasに追加
+# README.mdのみを含める（必要最小限）
 datas = []
 if os.path.exists(readme_path):
     datas.append((readme_path, '.'))
-if os.path.exists(asset_path):
-    datas.append((asset_path, 'asset'))
+    
+# アイコンはPyInstallerのiconオプションでバイナリに組み込まれるため
+# アセットファイルは配布パッケージに含めない
 
 a = Analysis(
     [os.path.join(src_dir, 'ffmpeg_gif_kun.py')],
@@ -239,30 +242,24 @@ exe = EXE(
 
         package_dir.mkdir(parents=True)
 
-        # ファイルをコピー
+        # 必要最小限のファイルのみをコピー
+        # 1. 実行ファイル
         shutil.copy2(exe_path, package_dir / exe_name)
+        print(f"   Added: {exe_name}")
+        
+        # 2. README.md
         readme_src = self.root_dir / "README.md"
         if readme_src.exists():
             shutil.copy2(readme_src, package_dir)
-
-        # アセットフォルダがある場合
-        asset_dir = self.root_dir / "asset"
-        if asset_dir.exists():
-            shutil.copytree(asset_dir, package_dir / "asset")
-
-        # 起動スクリプト（バックアップ用）
-        if self.system == 'windows':
-            script_content = f'@echo off\\nstart "" "{exe_name}"'
-            script_path = package_dir / "start.bat"
+            print(f"   Added: README.md")
         else:
-            script_content = f'#!/bin/bash\\n"./{exe_name}"'
-            script_path = package_dir / "start.sh"
+            print("   Warning: README.md not found")
 
-        with open(script_path, 'w', encoding='utf-8') as f:
-            f.write(script_content)
+        # アセットファイルは含めない
+        # （アイコンはPyInstallerによって実行ファイルに組み込まれるため）
+        print("   Note: Asset files excluded (icons embedded in executable)")
 
-        if self.system != 'windows':
-            os.chmod(script_path, 0o755)
+        # 起動スクリプトは作成しない（実行ファイル直接実行を推奨）
 
         # ZIP圧縮
         archive_path = self.dist_dir / f"{package_name}.zip"
@@ -273,9 +270,14 @@ exe = EXE(
             package_name
         )
 
+        # パッケージ内容を確認
+        files_in_package = list(package_dir.iterdir())
         print(f"✅ Distribution package created:")
         print(f"   Directory: {package_dir}")
         print(f"   Archive: {archive_path}")
+        print(f"   Files included: {len(files_in_package)}")
+        for file in files_in_package:
+            print(f"     - {file.name}")
 
         return True
         
@@ -310,6 +312,10 @@ exe = EXE(
         print("🚀 Starting FFmpeg GIF Kun build process...")
         print(f"   System: {platform.system()} {platform.machine()}")
         print(f"   Python: {sys.version}")
+        print("   Distribution will contain:")
+        print("     - Executable with embedded icon")
+        print("     - README.md")
+        print("     - No asset files (minimized distribution)")
         
         try:
             # ステップ1: クリーンアップ
