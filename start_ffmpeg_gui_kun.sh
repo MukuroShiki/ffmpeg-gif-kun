@@ -6,14 +6,14 @@ cd "$(dirname "$0")"
 # Python仮想環境がある場合は使用
 if [ -f ".venv/bin/python" ]; then
     echo "仮想環境でFFmpeg GIF Kunを起動中..."
-    .venv/bin/python ./src/ffmpeg_gui_kun.py
+    .venv/bin/python ./src/ffmpeg_gif_kun.py
 else
     # システムのPythonを使用
     echo "システムPythonでFFmpeg GIF Kunを起動中..."
     if command -v python3 &> /dev/null; then
-        python3 ./src/ffmpeg_gui_kun.py
+        python3 ./src/ffmpeg_gif_kun.py
     elif command -v python &> /dev/null; then
-        python ./src/ffmpeg_gui_kun.py
+        python ./src/ffmpeg_gif_kun.py
     else
         echo "エラー: Pythonが見つかりません。"
         echo "Python 3.7以上をインストールしてください。"

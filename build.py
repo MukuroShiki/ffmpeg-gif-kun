@@ -22,7 +22,7 @@ class FFmpegGUIBuilder:
         self.src_dir = self.root_dir / "src"
         self.dist_dir = self.root_dir / "dist"
         self.build_dir = self.root_dir / "build"
-        self.spec_file = self.root_dir / "ffmpeg_gui_kun.spec"
+        self.spec_file = self.root_dir / "ffmpeg_gif_kun.spec"
         self.system = platform.system().lower()
         
     def clean_build(self):
@@ -79,7 +79,7 @@ class FFmpegGUIBuilder:
             print(f"❌ Source directory not found: {self.src_dir}")
             return False
             
-        main_file = self.src_dir / "ffmpeg_gui_kun.py"
+        main_file = self.src_dir / "ffmpeg_gif_kun.py"
         if not main_file.exists():
             print(f"❌ Main file not found: {main_file}")
             return False
@@ -123,7 +123,7 @@ if os.path.exists(asset_path):
     datas.append((asset_path, 'asset'))
 
 a = Analysis(
-    [os.path.join(src_dir, 'ffmpeg_gui_kun.py')],
+    [os.path.join(src_dir, 'ffmpeg_gif_kun.py')],
     pathex=[src_dir],
     binaries=[],
     datas=datas,

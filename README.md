@@ -31,46 +31,20 @@
 2. 解凍して`FFmpeg-GIF-Kun.exe`を実行
 
 **macOS:**
-開発者がmacOSを有していないため、現在ビルド版はありません。
+1. 開発者がmacOSを有していないため、現在ビルド版はありません。
 
 **Linux:**
 1. [Releases](https://github.com/MukuroShiki/ffmpeg-gui-kun/releases)から最新の`ffmpeg-gif-kun-linux.tar.gz`をダウンロード
 2. 解凍して`./FFmpeg-GIF-Kun`を実行
-
-### 🐍 ソースコード版
 
 **必要要件:**
 - Python 3.7以上
 - 2GB以上のメモリ（推奨）
 - FFmpegが満足に動く程度の環境
 
-**インストール:**
-```bash
-# リポジトリをクローン
-git clone https://github.com/MukuroShiki/ffmpeg-gui-kun.git
-cd ffmpeg-gui-kun
-
-# 依存関係をインストール
-pip install -r requirements.txt
-
-# 実行
-python src/ffmpeg_gui_kun.py
-```
-
 ## 🔧 ビルド方法
 
-**各プラットフォームでのビルド:**
-
-```bash
-# 依存関係インストール
-pip install -r requirements.txt
-pip install -r build_requirements.txt
-
-# ビルド実行
-python build.py
-```
-
-**プラットフォーム固有の準備:**
+Linux環境では、Pythonの仮想環境.venvの使用を推奨します。
 
 <details>
 <summary>🐧 <strong>Linux (Ubuntu/Debian)</strong></summary>
@@ -131,55 +105,12 @@ python build.py
 3. 解像度・FPS・時間範囲を設定
 4. 「**GIF変換開始**」をクリック
 
-# 依存関係をインストール（基本的に標準ライブラリのみ）
-pip install -r requirements.txt
-
-# アプリケーションを起動
-python src/ffmpeg_gui_kun.py
-```
-
-#### 方法2: PyInstallerでビルド
-
-```bash
-# ビルド用依存関係をインストール
-pip install -r build_requirements.txt
-
-# 実行可能ファイルをビルド
-python build.py
-
-# 生成されたファイルを実行（Windows）
-./dist/FFmpeg-GIF-Kun.exe
-
-# 生成されたファイルを実行（macOS/Linux）
-./dist/FFmpeg-GIF-Kun
-```
-
-### 簡単起動スクリプト
-
-Windows:
-```batch
-start_ffmpeg_gui_kun.bat
-```
-
-macOS/Linux:
-```bash
-./start_ffmpeg_gui_kun.sh
-```
-
-## 🎮 使い方
-
-1. アプリケーションを起動
-3. 入力ファイルをドラッグ&ドロップで選択
-4. 出力設定を調整
-5. 「開始」ボタンで変換実行
-6. 進行状況を確認し、完了を待つ
-
 ## 🏗️ プロジェクト構造
 
 ```
-ffmpeg-gui-kun/
+ffmpeg-gif-kun/
 ├── src/                          # ソースコード
-│   ├── ffmpeg_gui_kun.py        # メインエントリーポイント
+│   ├── ffmpeg_gif_kun.py        # メインエントリーポイント
 │   ├── gui/                     # GUIコンポーネント
 │   │   ├── main_window.py       # メインウィンドウ
 │   │   └── gif_convert_tab.py   # GIF変換タブ
@@ -187,10 +118,10 @@ ffmpeg-gui-kun/
 │   │   └── ffmpeg_manager.py    # FFmpeg管理
 │   └── utils/                   # ユーティリティ
 │       ├── settings.py          # 設定管理
-│       ├── drag_drop.py         # ドラッグ&ドロップ
 │       └── ffmpeg_downloader.py # FFmpeg自動ダウンロード
 ├── build.py                     # ビルドスクリプト
 ├── requirements.txt             # 実行時依存関係
+├── build_requirements.txt       # 実行時依存関係
 └── README.md                    # このファイル
 ```
 
@@ -200,12 +131,12 @@ ffmpeg-gui-kun/
 
 ## 🐛 バグ報告・機能要望
 
-バグ報告や機能要望は[Issues](https://github.com/MukuroShiki/ffmpeg-gui-kun/issues)までお願いします。
+バグ報告や機能要望は[Issues](https://github.com/MukuroShiki/ffmpeg-gif-kun/issues)までお願いします。
 
 ## 📧 お問い合わせ
 
 - 作者: 屍鬼 骸 | Mukuro Shiki
-- プロジェクト: [https://github.com/MukuroShiki/ffmpeg-gui-kun](https://github.com/MukuroShiki/ffmpeg-gui-kun)
+- プロジェクト: [https://github.com/MukuroShiki/ffmpeg-gif-kun](https://github.com/MukuroShiki/ffmpeg-gif-kun)
 
 ## 🙏 謝辞
 
