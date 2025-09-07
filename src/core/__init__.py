@@ -1,1 +1,1 @@
-# FFmpeg GUI Kun Core Package
+# FFmpeg GIF Kun Core Package

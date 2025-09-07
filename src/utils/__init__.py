@@ -1,1 +1,1 @@
-# FFmpeg GUI Kun Utils Package
+# FFmpeg GIF Kun Utils Package

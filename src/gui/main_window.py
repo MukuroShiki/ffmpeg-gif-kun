@@ -1,5 +1,5 @@
 """
-FFmpeg GUI Kun - メインウィンドウ
+FFmpeg GIF Kun - メインウィンドウ
 
 メインアプリケーションウィンドウと基本的なGUI要素を提供する
 """
@@ -17,7 +17,7 @@ from core.ffmpeg_manager import FFmpegManager
 
 class FFmpegGUIApp:
     """
-    FFmpeg GUI Kunのメインアプリケーションクラス
+    FFmpeg GIF Kunのメインアプリケーションクラス
     
     動画エンコードとGIF変換の機能を提供するGUIアプリケーション
     """
@@ -45,7 +45,10 @@ class FFmpegGUIApp:
         """
         # 標準Tkinterルートウィンドウの作成
         self.root = tk.Tk()
-        self.root.title("FFmpeg GUI Kun - 動画エンコード・GIF変換ツール")
+        self.root.title("FFmpeg GIF Kun - GIF変換ツール")
+        
+        # アイコンを設定
+        self._set_app_icon()
         
         # ログ表示エリアを含めた最適なサイズを設定
         # 計算基準:
@@ -57,11 +60,6 @@ class FFmpegGUIApp:
         
         self.root.geometry(f"{optimal_width}x{optimal_height}")
         self.root.minsize(900, 750)  # 最小サイズも調整
-        
-        # アイコンの設定（利用可能な場合）
-        icon_path = Path(__file__).parent.parent / "asset" / "icon.ico"
-        if icon_path.exists():
-            self.root.iconbitmap(str(icon_path))
         
         # ウィンドウ閉じるイベントのバインド
         self.root.protocol("WM_DELETE_WINDOW", self._on_closing)
@@ -96,6 +94,87 @@ class FFmpegGUIApp:
         
         self.root.geometry(f"{width}x{height}+{x}+{y}")
         
+    def _set_app_icon(self):
+        """
+        アプリケーションアイコンを設定（Windows 11対応）
+        """
+        try:
+            # プロジェクトルートからの相対パスでアイコンファイルを探す
+            if hasattr(sys, '_MEIPASS'):
+                # PyInstallerで実行される場合の一時フォルダ
+                base_path = Path(sys._MEIPASS)
+            else:
+                # 開発環境での実行
+                base_path = Path(__file__).resolve().parent.parent.parent
+            
+            # アイコンファイルのパス
+            icon_ico = base_path / "asset" / "icon.ico"
+            icon_png = base_path / "asset" / "logo.png"  # PNGも用意している場合
+            
+            # Windows: タスクバーアイコン設定
+            if sys.platform.startswith("win"):
+                # 1. AppUserModelIDを設定（Windows 11で重要）
+                try:
+                    import ctypes
+                    from ctypes import wintypes
+                    
+                    # 固有のAppUserModelIDを設定
+                    app_id = "FFmpegGIFKun.MediaConverter.Application"
+                    ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(app_id)
+                    
+                    # アプリケーションの実行可能ファイルパスを取得
+                    if hasattr(sys, 'frozen') and hasattr(sys, '_MEIPASS'):
+                        # PyInstallerでビルドされた実行ファイル
+                        exe_path = sys.executable
+                        print(f"Executable path: {exe_path}")
+                        
+                        # タスクバーに表示される実行ファイルのパスを明示的に設定
+                        try:
+                            # SetCurrentProcessExplicitAppUserModelIDを再度呼び出し
+                            ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(app_id)
+                        except Exception as e:
+                            print(f"Warning: Could not set AppUserModelID: {e}")
+                    
+                except Exception as e:
+                    print(f"Warning: Could not set Windows-specific icon properties: {e}")
+                    
+                # 2. .icoファイルでウィンドウアイコンを設定
+                if icon_ico.exists():
+                    self.root.iconbitmap(str(icon_ico))
+                    print(f"Window icon set: {icon_ico}")
+                else:
+                    print(f"Warning: Icon file not found: {icon_ico}")
+                    
+                # 3. タスクバーアイコンを強制更新（Windows 11対応）
+                try:
+                    import ctypes
+                    from ctypes import wintypes
+                    
+                    # タスクバーのアイコンキャッシュをクリアする
+                    # これによりPyInstallerの羽アイコンから切り替わる
+                    user32 = ctypes.windll.user32
+                    hwnd = user32.GetActiveWindow()
+                    if hwnd:
+                        # ウィンドウを一度隠して再表示（タスクバー更新のため）
+                        user32.ShowWindow(hwnd, 0)  # SW_HIDE
+                        self.root.after(10, lambda: user32.ShowWindow(hwnd, 1))  # SW_NORMAL
+                        
+                except Exception as e:
+                    print(f"Warning: Could not refresh taskbar icon: {e}")
+            
+            # macOS/Linux: PNGファイルでアイコンを設定
+            elif icon_png.exists():
+                try:
+                    from tkinter import PhotoImage
+                    icon_img = PhotoImage(file=str(icon_png))
+                    self.root.iconphoto(True, icon_img)
+                    print(f"Icon set: {icon_png}")
+                except Exception as e:
+                    print(f"Warning: Could not set PNG icon: {e}")
+                    
+        except Exception as e:
+            print(f"Warning: Could not set application icon: {e}")
+
     def _setup_styles(self):
         """
         UIスタイルのセットアップ
@@ -228,7 +307,7 @@ class FFmpegGUIApp:
         """
         ヘルプ情報を表示
         """
-        help_text = """FFmpeg GUI Kun - ヘルプ
+        help_text = """FFmpeg GIF Kun - ヘルプ
 
 【基本操作】
 • ファイル選択: 「参照」ボタンまたはCtrl+Oでファイルを選択
@@ -480,9 +559,27 @@ sudo apt install ffmpeg
         アプリケーションを実行
         """
         try:
+            # Windows 11でタスクバーアイコンを確実に表示するため、
+            # 起動後に再度AppUserModelIDを設定
+            if sys.platform.startswith("win"):
+                self.root.after(100, self._refresh_taskbar_icon)
+                
             self.root.mainloop()
         except KeyboardInterrupt:
             self._force_quit()
         except Exception as e:
             messagebox.showerror("エラー", f"予期しないエラーが発生しました: {str(e)}")
             self._force_quit()
+            
+    def _refresh_taskbar_icon(self):
+        """
+        タスクバーアイコンを強制更新（Windows 11対応）
+        """
+        if sys.platform.startswith("win"):
+            try:
+                import ctypes
+                app_id = "FFmpegGIFKun.MediaConverter.Application"
+                ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(app_id)
+                print("Taskbar icon refreshed")
+            except Exception as e:
+                print(f"Warning: Could not refresh taskbar icon: {e}")

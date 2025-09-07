@@ -1,5 +1,5 @@
 """
-FFmpeg GUI Kun - FFmpeg自動ダウンロード・管理
+FFmpeg GIF Kun - FFmpeg自動ダウンロード・管理
 
 FFmpegが環境にインストールされていない場合の自動ダウンロード機能
 """

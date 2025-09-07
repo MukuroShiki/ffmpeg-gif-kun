@@ -1,5 +1,5 @@
 """
-FFmpeg GUI Kun - 高品質GIF変換タブ
+FFmpeg GIF Kun - 高品質GIF変換タブ
 
 2段階方式による高品質GIF変換機能のUIと処理を提供する
 """

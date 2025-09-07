@@ -1,5 +1,5 @@
 """
-FFmpeg GUI Kun - PyInstaller Build Script
+FFmpeg GIF Kun - PyInstaller Build Script
 
 実行可能ファイル作成用のビルドスクリプト
 """
@@ -14,7 +14,7 @@ import platform
 
 class FFmpegGUIBuilder:
     """
-    FFmpeg GUI Kunのビルダークラス
+    FFmpeg GIF Kunのビルダークラス
     """
     
     def __init__(self):
@@ -93,9 +93,18 @@ class FFmpegGUIBuilder:
         """
         print("📝 Creating PyInstaller spec file...")
         
-        # アイコンファイルの確認
-        icon_path = self.root_dir / "asset" / "icon.ico"
-        icon_option = f"icon=r'{icon_path.as_posix()}'" if icon_path.exists() else ""
+        # アイコンファイルの確認（プラットフォーム別）
+        if self.system == 'darwin':  # macOS
+            icon_path = self.root_dir / "asset" / "icon.icns"
+        else:  # Windows/Linux
+            icon_path = self.root_dir / "asset" / "icon.ico"
+            
+        if icon_path.exists():
+            icon_option = f"icon=r'{icon_path.as_posix()}'"
+            print(f"   Icon found: {icon_path}")
+        else:
+            icon_option = ""
+            print(f"   Warning: Icon file not found: {icon_path}")
         
         # specファイルの内容（Windows パス対応）
         spec_content = f'''# -*- mode: python ; coding: utf-8 -*-

@@ -1,8 +1,8 @@
 """
-FFmpeg GUI Kun - 動画エンコード・GIF変換GUIアプリケーション
+FFmpeg GIF Kun - GIF変換GUIアプリケーション
 
-This application provides a user-friendly GUI for video encoding and GIF conversion
-using FFmpeg. It supports various output formats, encoders, and customizable settings.
+This application provides a user-friendly GUI for GIF conversionusing FFmpeg. 
+It supports various output formats, encoders, and customizable settings.
 
 Author: 屍鬼 骸 | Mukuro Shiki
 License: Open Source

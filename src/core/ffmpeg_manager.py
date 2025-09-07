@@ -1,5 +1,5 @@
 """
-FFmpeg GUI Kun - FFmpegマネージャー
+FFmpeg GIF Kun - FFmpegマネージャー
 
 FFmpegコマンドの実行と管理を行うクラス
 """
