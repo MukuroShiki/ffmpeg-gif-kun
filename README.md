@@ -2,7 +2,7 @@
 
 [![Python](https://img.shields.io/badge/Python-3.7%2B-blue.svg)](https://www.python.org/downloads/)
 [![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20Linux-lightgrey.svg)](https://github.com/MukuroShiki/ffmpeg-gui-kun)
-![License](https://img.shields.io/github/license/MukuroShiki/ffmpeg-gif-kun)
+[![License](https://img.shields.io/badge/License-BSD_2--Clause-orange.svg)](https://opensource.org/licenses/BSD-2-Clause)
 
 > 🎬 **簡単操作で高品質な動画変換・GIF作成**  
 > FFmpegの複雑なコマンドを覚える必要なし。直感的なGUIで誰でも使える動画変換ツール
