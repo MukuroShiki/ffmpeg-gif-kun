@@ -8,7 +8,8 @@
 > FFmpegの複雑なコマンドを覚える必要なし。直感的なGUIで誰でも使える動画変換ツール
 
 <div align="center"><img src="https://github.com/MukuroShiki/ffmpeg-gif-kun/blob/c91fdd30d38c13b30a3b0cc8bed693aef3b859d2/.brand/readme_top.png" alt="READMEトップ画像" width="500" /></div>
-## � 特徴
+
+## ⭐ 特徴
 
 - **🖱️ 簡単操作**: ドラッグ&ドロップでファイル選択
 - **⚡ すぐ使える**: FFmpeg自動ダウンロード（初回のみ）
